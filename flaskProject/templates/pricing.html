@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coffee Pricing</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #6e7aeb, #3b8d99);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #964B00;
+            overflow: hidden;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #6b4226;
+            animation: fadeIn 2s ease-in-out;
+        }
+        .price-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 20px auto;
+            max-width: 300px;
+        }
+        .price-list li {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            margin: 20px 0;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            animation: slideIn 1s ease-in-out;
+        }
+        .price-list img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+        .price-list img:hover {
+            transform: scale(1.1);
+        }
+        .button-container {
+            margin: 20px;
+            animation: fadeIn 2s ease-in-out;
+        }
+        button {
+            background-color: #6b4226;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #56351f;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toolbar {
+                position: fixed;
+                top: 20px;
+                left: 46.5%;
+                background-color: rgba(255, 255, 255, 0.9);
+                border-radius: 5px;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                padding: 10px 20px;
+            }
+            .toolbar ul {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                gap: 10px;
+            }
+            .toolbar li a {
+                text-decoration: none;
+                color: #6b4226;
+                font-weight: bold;
+                transition: color 0.3s ease;
+            }
+            .toolbar li a:hover {
+                color: #56351f;
+            }
+
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Feel Free To Pop In And Try</h1>
+    <ul class="price-list">
+        <li>
+            <img src="/static/espresso.jpg" alt="Espresso">
+            Espresso - £2.50
+        </li>
+        <li>
+            <img src="/static/latte.jpg" alt="Latte">
+            Latte - £3.50
+        </li>
+        <li>
+            <img src="/static/cappucino.jpg" alt="Cappucino">
+            Cappuccino - £3.75
+        </li>
+        <li>
+            <img src="/static/mocha.jpg" alt="Mocha">
+            Mocha - £4.00
+        </li>
+        <li>
+            <img src="/static/americano.jpg" alt="Americano">
+            Americano - £2.75
+        </li>
+    </ul>
+    <div class="button-container">
+        <button onclick="displayPhone()">Click Me for our in store Phone number</button>
+    </div>
+</div>
+<div class="toolbar">
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/about">About</a></li>
+    </ul>
+</div>
+
+</div>
+
+<script>
+    function displayPhone() {
+        alert("📞 0121 DO ONE - Enjoy your visit!");
+    }
+</script>
+</body>
+</html>
