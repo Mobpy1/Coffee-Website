@@ -1,90 +1,105 @@
+
+
+#---------------------------------------------------------------------------------------------#
+
+#-- flask running webserver --#
 from flask import Flask, render_template, request, session, redirect, url_for
-import secrets
-import csv
-import requests
-from cryptography.fernet import Fernet
-import os
-import datetime
 
-# Generate a secure random secret key for session
-secret_key = secrets.token_urlsafe(16)
-print(f"Secret Key: {secret_key}")
 
-API_KEY = '6896b75e9c39a1637ccc40695c5a2a9a'  # OpenWeatherMap API Key
-WEATHER_URL = 'http://api.openweathermap.org/data/2.5/weather'
-LAST_LOGIN_FILE = "last_login.txt"
+#-- config contains all needed libraries and external variables --#
+import config
+
+#---------------------------------------------------------------------------------------------#
+
+#-- STARTUP DONT TOUCH --#
+
+
+
+secret_key = config.secrets.token_urlsafe(16)   #-- Generate a secure random secret key for session --#
+
 app = Flask(__name__)
 app.secret_key = secret_key
 
-# Load the encryption key (this should be the same key used for encryption)
+#-- END OF STARTUP--#
+
+
+#-- START OF MAIN FUNCTIONS --#
+
+#-- Load the encryption key (this should be the same key used for encryption) --#
 def load_key(key_file="key.key"):
     with open(key_file, "rb") as f:
         return f.read()
 
-# Decrypt a stored encrypted password
+#-- Decrypt a stored encrypted password --#
 def decrypt_password(encrypted_password, key):
-    fernet = Fernet(key)
+    fernet = config.Fernet(key)
     decrypted = fernet.decrypt(encrypted_password)  # No encoding here
     return decrypted.decode()  # Return the decrypted password as a string
 
-# Validate credentials by decrypting the stored password
+
+#-- Validate credentials by decrypting the stored password --#
 def validate_credentials(username, password):
     key = load_key()  # Load the encryption key
-    with open('encrypted_passwords.csv', 'r') as file:
-        reader = csv.reader(file)
-        next(reader)  # Skip the header row
-        for row in reader:
-            if len(row) >= 3:  # Ensure there are enough columns in the row
-                stored_username, encrypted_password = row[1], row[2]
-                if username == stored_username:
-                    decrypted_password = decrypt_password(encrypted_password, key)
-                    if decrypted_password == password:
-                        return True
+    
+    conn = config.pyodbc.connect(config.CONNECTION_STRING)
+    cursor = conn.cursor()
+
+    query = "SELECT encypt_pass FROM website_users WHERE username = ?"
+    cursor.execute(query,(username,))
+    row = cursor.fetchone()
+    
+    if row:
+        encrypted_pass = row[0]
+        decrypted_password = decrypt_password(encrypted_pass.encode(),key)
+
+        if decrypted_password == password:
+            return True
+    cursor.close()
+    conn.close()
     return False
-
+    
+#-- GET Last login for user --#   
 def get_last_login(username):
-    """Retrieve the last login time for a specific username."""
-    if os.path.exists(LAST_LOGIN_FILE):
-        with open(LAST_LOGIN_FILE, 'r') as file:
-            lines = file.readlines()
-            for line in lines:
-                # Each line format: "username : timestamp"
-                if line.startswith(username + " :"):
+    
+    conn = config.pyodbc.connect(config.CONNECTION_STRING)
+    cursor = conn.cursor()
 
-                    return line[7:]  # Return the matching line
-    return f"No login recorded for {username}."
+    # Query to get the last login time for the given username
+    query = "SELECT last_login FROM website_users WHERE username = ?"
+    cursor.execute(query, (username,))
+    row = cursor.fetchone()
 
-now = datetime.datetime.now()
+    cursor.close()
+    conn.close()
+
+    if row:
+        return row[0]  # Return the last login timestamp
+    else:
+        return f"No login recorded for {username}."
 
 
+
+#-- UPDATE last login for user --#
 def update_last_login(username):
     """Update the last login information for a specific username."""
-    now = datetime.datetime.now()
+    now = config.datetime.datetime.now()
     current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
-    # Read existing entries
-    if os.path.exists(LAST_LOGIN_FILE):
-        with open(LAST_LOGIN_FILE, 'r') as file:
-            lines = file.readlines()
-    else:
-        lines = []
+    conn = config.pyodbc.connect(config.CONNECTION_STRING)
+    cursor = conn.cursor()
 
-    # Check if username exists and update its row
-    updated = False
-    for i in range(len(lines)):
-        if lines[i].startswith(username + " :"):
-            lines[i] = f"{username} : {current_time}\n"
-            updated = True
-            break
+    query = "UPDATE website_users SET last_login = ? WHERE username = ?"
+    cursor.execute(query, (current_time, username))
 
-    # If username not found, append a new entry
-    if not updated:
-        lines.append(f"{username} : {current_time}\n")
+    conn.commit()
+    cursor.close()
+    conn.close()
 
-    # Write back the updated content
-    with open(LAST_LOGIN_FILE, 'w') as file:
-        file.writelines(lines)
 
+#-- END OF MAIN FUNCTIONS --#
+
+
+#-- START OF APP ROUTING FOR DIFFERENT INDEX --#
 
 @app.route('/')
 def home():
@@ -142,7 +157,7 @@ def changePass():
             # Validate old password
             key = load_key()  # Load the encryption key
             with open('encrypted_passwords.csv', 'r') as file:
-                reader = csv.reader(file)
+                reader = config.csv.reader(file)
                 next(reader)  # Skip header row
                 user_found = False
                 for row in reader:
@@ -156,7 +171,7 @@ def changePass():
                 return "Invalid old password. Please try again."
 
             # Encrypt new password
-            fernet = Fernet(key)
+            fernet = config.Fernet(key)
             encrypted_new_password = fernet.encrypt(new_password.encode())
 
             # Update the CSV file with the new encrypted password
@@ -190,7 +205,17 @@ def about():
 
 @app.route('/pricing')
 def pricing():
-    return render_template("pricing.html")
+
+    conn = config.pyodbc.connect(config.CONNECTION_STRING)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, ItemName, Price, ImageURL FROM Items")
+    items = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template("pricing.html", items= items)
 
 @app.route('/success')
 def success():
@@ -210,10 +235,10 @@ def logout():
 def get_weather(city='London'):
     params = {
         'q': city,
-        'appid': API_KEY,
+        'appid': config.API_KEY,
         'units': 'metric'  # You can change this to 'imperial' for Fahrenheit
     }
-    response = requests.get(WEATHER_URL, params=params)
+    response = config.requests.get(config.WEATHER_URL, params=params)
 
     if response.status_code == 200:
         data = response.json()
@@ -224,6 +249,8 @@ def get_weather(city='London'):
     else:
         return None, "Weather data could not be retrieved.", None
 
+
+#-- END OF APP ROUTE FOR DIFFERENT INDEX --#
 
 if __name__ == '__main__':
     app.run(debug=False)
